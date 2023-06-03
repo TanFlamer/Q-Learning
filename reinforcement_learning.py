@@ -1,11 +1,14 @@
 class ReinforcementLearning:
-    def __init__(self, env, qLearning, train_settings):
+    def __init__(self, env, qLearning, train_settings, functions):
         # Environment
         self.env = env
         # Q-Learning agent
         self.qLearning = qLearning
         # Unpack settings
         [self.runs, self.episodes, self.turns, self.exclude_failure] = train_settings
+        # Unpack functions
+        [self.step_function, self.state_to_bucket, self.action_function,
+         self.success_function, self.reward_function] = functions
 
     def train_agent(self, hyperparameters):
 
@@ -28,7 +31,7 @@ class ReinforcementLearning:
                 # Reset the environment
                 obv, _ = self.env.reset()
                 # Get state
-                state = self.env.state_to_bucket(obv)
+                state = self.state_to_bucket(obv)
                 # New Q-Table
                 self.qLearning.new_episode(state)
 
@@ -38,7 +41,7 @@ class ReinforcementLearning:
                 time_steps.append(time_step + time_steps[-1])
 
                 # Check success condition
-                if self.env.success_function(time_steps, rewards, last_obv):
+                if self.success_function(time_steps, rewards, last_obv):
                     # Record result for success
                     results.append(episode + 1)
                     break
@@ -65,25 +68,25 @@ class ReinforcementLearning:
             # Select main action
             action = self.qLearning.select_action()
             # Process main and opposite action
-            action, opposite_action = self.env.action_function(action)
+            action, opposite_action = self.action_function(action)
 
             # Execute the action
             obv, _, terminated, _, _ = self.env.step(action)
             # Get state
-            state = self.env.state_to_bucket(obv)
+            state = self.state_to_bucket(obv)
             # Get reward
-            reward = self.env.reward_function(obv, terminated, turn)
+            reward = self.reward_function(obv, terminated, turn)
             # Update Q-table
             self.qLearning.update_table(state, action, reward)
 
             # Opposition learning
             if opposite_action is not None:
                 # Execute opposite action
-                opposite_obv, opposite_terminated = self.env.step_function(old_obv, opposite_action)
+                opposite_obv, opposite_terminated = self.step_function(old_obv, opposite_action)
                 # Get opposite state
-                opposite_state = self.env.state_to_bucket(opposite_obv)
+                opposite_state = self.state_to_bucket(opposite_obv)
                 # Get opposite reward
-                opposite_reward = self.env.reward_function(opposite_obv, opposite_terminated, turn)
+                opposite_reward = self.reward_function(opposite_obv, opposite_terminated, turn)
                 # Update opposite Q-table
                 self.qLearning.update_table(opposite_state, opposite_action, opposite_reward)
 
