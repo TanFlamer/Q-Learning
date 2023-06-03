@@ -17,26 +17,57 @@ def get_average(time_steps):
         return (time_steps[-1] - time_steps[-101]) / 100
 
 
+def _dsdt(s_augmented):
+    m1 = 1.0  #: [kg] mass of link 1
+    m2 = 1.0  #: [kg] mass of link 2
+    l1 = 1.0  # [m]
+    lc1 = 0.5  #: [m] position of the center of mass of link 1
+    lc2 = 0.5  #: [m] position of the center of mass of link 2
+    I1 = 1.0  #: moments of inertia for both links
+    I2 = 1.0  #: moments of inertia for both links
+    g = 9.8
+
+    a = s_augmented[-1]
+    s = s_augmented[:-1]
+
+    theta1 = s[0]
+    theta2 = s[1]
+    dtheta1 = s[2]
+    dtheta2 = s[3]
+
+    d1 = (m1 * lc1 ** 2 + m2 * (l1 ** 2 + lc2 ** 2 + 2 * l1 * lc2 * cos(theta2)) + I1 + I2)
+    d2 = m2 * (lc2 ** 2 + l1 * lc2 * cos(theta2)) + I2
+
+    phi2 = m2 * lc2 * g * cos(theta1 + theta2 - pi / 2.0)
+    phi1 = (-m2 * l1 * lc2 * dtheta2 ** 2 * sin(theta2) - 2 * m2 * l1 * lc2 * dtheta2 * dtheta1 * sin(theta2)
+            + (m1 * lc1 + m2 * l1) * g * cos(theta1 - pi / 2) + phi2)
+
+    # the following line is consistent with the java implementation and the book
+    ddtheta2 = (a + d2 / d1 * phi1 - m2 * l1 * lc2 * dtheta1 ** 2 * sin(theta2) - phi2) / (
+            m2 * lc2 ** 2 + I2 - d2 ** 2 / d1)
+    ddtheta1 = -(d2 * ddtheta2 + phi1) / d1
+
+    return dtheta1, dtheta2, ddtheta1, ddtheta2, 0.0
+
+
 class AcrobotFunctions:
-    def __init__(self):
+    def __init__(self, parameter_settings):
         # Step function constants
         self.MAX_VEL_1 = 4 * pi
         self.MAX_VEL_2 = 9 * pi
         self.AVAIL_TORQUE = [-1.0, 0.0, +1]
-        # _dsdt constants
-        self.I1 = 1.0  #: moments of inertia for both links
-        self.I2 = 1.0  #: moments of inertia for both links
-        self.g = 9.8
         # State bounds
         self.state_bounds = [(-1, 1), (-1, 1), (-1, 1), (-1, 1),
                              (-self.MAX_VEL_1, self.MAX_VEL_1), (-self.MAX_VEL_2, self.MAX_VEL_2)]
+        # Unpack parameter settings
+        [_, self.num_state, self.num_action, _, self.opposition, self.reward_type] = parameter_settings
 
     def step_function(self, state, action):
         torque = self.AVAIL_TORQUE[action]
 
         # Now, augment the state with our force action, so it can be passed to _dsdt
         s_augmented = np.append(state, torque)
-        ns = rk4(self._dsdt, s_augmented, [0, 0.2])
+        ns = rk4(_dsdt, s_augmented, [0, 0.2])
 
         ns[0] = wrap(ns[0], -pi, pi)
         ns[1] = wrap(ns[1], -pi, pi)
@@ -47,60 +78,31 @@ class AcrobotFunctions:
         terminated = bool(-cos(ns[0]) - cos(ns[1] + ns[0]) > 1.0)
         return np.array([cos(ns[0]), sin(ns[0]), cos(ns[1]), sin(ns[1]), ns[2], ns[3]], dtype=np.float32), terminated
 
-    def _dsdt(self, s_augmented):
-        m1 = 1.0  #: [kg] mass of link 1
-        m2 = 1.0  #: [kg] mass of link 2
-        l1 = 1.0  # [m]
-        lc1 = 0.5  #: [m] position of the center of mass of link 1
-        lc2 = 0.5  #: [m] position of the center of mass of link 2
-
-        a = s_augmented[-1]
-        s = s_augmented[:-1]
-
-        theta1 = s[0]
-        theta2 = s[1]
-        dtheta1 = s[2]
-        dtheta2 = s[3]
-
-        d1 = (m1 * lc1 ** 2 + m2 * (l1 ** 2 + lc2 ** 2 + 2 * l1 * lc2 * cos(theta2)) + self.I1 + self.I2)
-        d2 = m2 * (lc2 ** 2 + l1 * lc2 * cos(theta2)) + self.I2
-
-        phi2 = m2 * lc2 * self.g * cos(theta1 + theta2 - pi / 2.0)
-        phi1 = (-m2 * l1 * lc2 * dtheta2 ** 2 * sin(theta2) - 2 * m2 * l1 * lc2 * dtheta2 * dtheta1 * sin(theta2)
-                + (m1 * lc1 + m2 * l1) * self.g * cos(theta1 - pi / 2) + phi2)
-
-        # the following line is consistent with the java implementation and the book
-        ddtheta2 = (a + d2 / d1 * phi1 - m2 * l1 * lc2 * dtheta1 ** 2 * sin(theta2) - phi2) / (
-                m2 * lc2 ** 2 + self.I2 - d2 ** 2 / d1)
-        ddtheta1 = -(d2 * ddtheta2 + phi1) / d1
-
-        return dtheta1, dtheta2, ddtheta1, ddtheta2, 0.0
-
-    def state_to_bucket(self, obv, num_buckets):
+    def state_to_bucket(self, obv):
         bucket_indice = []
         for i in range(len(obv)):
             if obv[i] <= self.state_bounds[i][0]:
                 bucket_index = 0
             elif obv[i] >= self.state_bounds[i][1]:
-                bucket_index = num_buckets[i] - 1
+                bucket_index = self.num_state[i] - 1
             else:
                 # Mapping the state bounds to the bucket array
                 bound_width = self.state_bounds[i][1] - self.state_bounds[i][0]
-                offset = (num_buckets[i] - 1) * self.state_bounds[i][0] / bound_width
-                scaling = (num_buckets[i] - 1) / bound_width
+                offset = (self.num_state[i] - 1) * self.state_bounds[i][0] / bound_width
+                scaling = (self.num_state[i] - 1) / bound_width
                 bucket_index = int(round(scaling * obv[i] - offset))
             bucket_indice.append(bucket_index)
         return tuple(bucket_indice)
 
-    def action_function(self, action, num_action, opposition):
-        if num_action == 2: action = action * 2
-        opposite_action = 2 - action if opposition and action != 1 else None
+    def action_function(self, action):
+        if self.num_action == 2: action = action * 2
+        opposite_action = 2 - action if self.opposition and action != 1 else None
         return action, opposite_action
 
     def success_function(self, _, time_steps):
         return get_average(time_steps) <= 195.0
 
-    def reward_function(self, reward_type):
+    def reward_function(self):
 
         # Return base reward
         def base_reward(_0, terminated, _1): return 0 if terminated else -1
@@ -114,4 +116,4 @@ class AcrobotFunctions:
         # Use dict to store functions
         functions = {"Base": base_reward, "Time": time_penalty, "Velocity":velocity_reward, "Height": height_reward}
         # Return reward function
-        return functions[reward_type]
+        return functions[self.reward_type]

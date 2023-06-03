@@ -28,7 +28,7 @@ def angle_reward(obv):
 
 
 class CartpoleFunctions:
-    def __init__(self):
+    def __init__(self, parameter_settings):
         # Step function constants
         self.gravity = 9.8
         self.masscart = 1.0
@@ -41,6 +41,8 @@ class CartpoleFunctions:
         # Failure threshold
         self.x_threshold = 2.4
         self.theta_threshold_radians = math.pi / 15
+        # Unpack parameter settings
+        [_, self.num_state, _, _, self.opposition, self.reward_type] = parameter_settings
 
     def step_function(self, state, action):
         total_mass = self.masspole + self.masscart
@@ -75,30 +77,30 @@ class CartpoleFunctions:
 
         return np.array(state, dtype=np.float32), terminated
 
-    def state_to_bucket(self, obv, num_buckets):
+    def state_to_bucket(self, obv):
         bucket_indice = []
         for i in range(len(obv)):
             if obv[i] <= self.state_bounds[i][0]:
                 bucket_index = 0
             elif obv[i] >= self.state_bounds[i][1]:
-                bucket_index = num_buckets[i] - 1
+                bucket_index = self.num_state[i] - 1
             else:
                 # Mapping the state bounds to the bucket array
                 bound_width = self.state_bounds[i][1] - self.state_bounds[i][0]
-                offset = (num_buckets[i] - 1) * self.state_bounds[i][0] / bound_width
-                scaling = (num_buckets[i] - 1) / bound_width
+                offset = (self.num_state[i] - 1) * self.state_bounds[i][0] / bound_width
+                scaling = (self.num_state[i] - 1) / bound_width
                 bucket_index = int(round(scaling * obv[i] - offset))
             bucket_indice.append(bucket_index)
         return tuple(bucket_indice)
 
-    def action_function(self, action, _, opposition):
-        opposite_action = 1 - action if opposition else None
+    def action_function(self, action):
+        opposite_action = 1 - action if self.opposition else None
         return action, opposite_action
 
     def success_function(self, _, time_steps):
         return get_average(time_steps) >= 195.0
 
-    def reward_function(self, reward_type):
+    def reward_function(self):
 
         # Return base reward
         def base_reward(_0, _1, _2): return 1
@@ -117,5 +119,5 @@ class CartpoleFunctions:
         functions = {"Base": base_reward, "Termination": termination_penalty, "Time": time_reward,
                      "Uniform": uniform_reward, "Exponential": exponential_reward, "Logarithmic": logarithmic_reward}
         # Return reward function
-        return functions[reward_type]
+        return functions[self.reward_type]
 
