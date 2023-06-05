@@ -2,7 +2,7 @@ import numpy as np
 from numpy import pi, radians, sin, cos, exp, log
 
 from support_functions import angle_reward, future_position, get_average
-from .env_functions import EnvFunctions
+from new_gui.code.env_functions import EnvFunctions
 
 
 class CartpoleFunctions(EnvFunctions):
@@ -21,12 +21,12 @@ class CartpoleFunctions(EnvFunctions):
         # State bounds
         self.state_bounds = [(-4.8, 4.8), (-0.5, 0.5), (-radians(24), radians(24)), (-radians(50), radians(50))]
 
-    def step_function(self, state, action):
+    def step_function(self, obv, action):
         total_mass = self.masspole + self.masscart
         polemass_length = self.masspole * self.length
         tau = 0.02  # seconds between state updates
 
-        x, x_dot, theta, theta_dot = state
+        x, x_dot, theta, theta_dot = obv
         force = self.force_mag if action == 1 else -self.force_mag
         costheta = cos(theta)
         sintheta = sin(theta)
@@ -42,7 +42,7 @@ class CartpoleFunctions(EnvFunctions):
         theta_dot = theta_dot + tau * thetaacc
 
         # New state
-        state = (x, x_dot, theta, theta_dot)
+        obv = (x, x_dot, theta, theta_dot)
 
         # Terminated
         terminated = bool(
@@ -52,7 +52,7 @@ class CartpoleFunctions(EnvFunctions):
             or theta > self.theta_threshold_radians
         )
 
-        return np.array(state, dtype=np.float32), terminated
+        return np.array(obv, dtype=np.float32), terminated
 
     def state_to_bucket(self, obv):
         bucket_indice = []

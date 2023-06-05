@@ -3,7 +3,7 @@ from numpy import pi, sin, cos, exp
 
 from gym.envs.classic_control.acrobot import wrap, bound, rk4
 from support_functions import _dsdt, get_average
-from .env_functions import EnvFunctions
+from new_gui.code.env_functions import EnvFunctions
 
 
 class AcrobotFunctions(EnvFunctions):
@@ -17,11 +17,11 @@ class AcrobotFunctions(EnvFunctions):
         # State bounds
         self.state_bounds = [(-1, 1), (-1, 1), (-1, 1), (-1, 1), (-4 * pi, 4 * pi), (-9 * pi, 9 * pi)]
 
-    def step_function(self, state, action):
+    def step_function(self, obv, action):
         torque = self.AVAIL_TORQUE[action]
 
         # Now, augment the state with our force action, so it can be passed to _dsdt
-        s_augmented = np.append(state, torque)
+        s_augmented = np.append(obv, torque)
         ns = rk4(_dsdt, s_augmented, [0, 0.2])
 
         ns[0] = wrap(ns[0], -pi, pi)

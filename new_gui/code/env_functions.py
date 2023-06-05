@@ -7,7 +7,7 @@ class EnvFunctions(ABC):
         """Unpack parameters settings"""
         [self.num_q_table, self.num_state, self.num_action,
          self.random_type, self.opposition, self.reward_type] = parameter_settings
-        """Define state bounds and constants and initialise environment"""
+        """Define state bounds and constants"""
 
     def env_functions(self):
         # Returns functions used in environment
@@ -15,7 +15,7 @@ class EnvFunctions(ABC):
                 self.success_function, self.reward_function()]
 
     @abstractmethod
-    def step_function(self, state, action):
+    def step_function(self, obv, action):
         """Step function for opposition learning"""
 
     @abstractmethod

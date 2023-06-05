@@ -6,6 +6,7 @@ class QLearning:
     def __init__(self, parameter_settings):
         # Unpack parameter settings
         [self.num_q_table, self.num_state, self.num_action, self.random_type, _, _] = parameter_settings
+        self.buckets = (self.num_state, self.num_action)
 
         # Counters
         self.runs = None
@@ -46,12 +47,12 @@ class QLearning:
         self.check_step_sign()
 
     def new_run(self):
-        # Reset Q-tables
-        self.generate_tables()
         # Increment run
         self.runs += 1
         # Reset episode
         self.episodes = 0
+        # Reset Q-tables
+        self.generate_tables()
 
     def new_episode(self, state):
         # Increment episode
@@ -69,28 +70,26 @@ class QLearning:
     def generate_tables(self):
         # Clear old Q-tables
         self.q_tables.clear()
-        # Create buckets
-        buckets = (self.num_state, self.num_action)
         # Loop to create Q-tables
         for x in range(self.num_q_table):
             # Return single table
-            q_table = self.single_table(buckets)
+            q_table = self.single_table()
             # Append to Q-table list
             self.q_tables.append(q_table)
 
-    def single_table(self, buckets):
+    def single_table(self):
         # Assign Q-table value
         if self.random_type == "None":
             # Generate arrays of 0s
-            return np.zeros(buckets)
+            return np.zeros(self.buckets)
         elif self.random_type == "Normal":
             # Generate arrays with normal distribution
-            temp_table = np.random.randn(*buckets) * (10 / 3)
+            temp_table = np.random.randn(*self.buckets) * (10 / 3)
             # Bound arrays to range
             return np.clip(temp_table, -10, 10)
         else:
             # Generate arrays with uniform distribution
-            return np.random.uniform(-10, 10, buckets)
+            return np.random.uniform(-10, 10, self.buckets)
 
     def select_action(self):
         # Available actions
