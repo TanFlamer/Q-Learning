@@ -1,39 +1,7 @@
 # Import the required Libraries
 from tkinter import *
 from tkinter import ttk
-
-
-def get_widget_values(var_list):
-    values = [var.get() for var in var_list]
-    return [process_widget_value(value) for value in values]
-
-
-def process_widget_value(value):
-    # Value is already int or string
-    if isinstance(value, int) or not value.replace(".", "").isnumeric():
-        return value
-    else:
-        return int(value) if value.isnumeric() else float(value)
-
-
-def get_col_index(index):
-    remainder = index % 3
-    return 2 * remainder + 1
-
-
-def get_row_index(index, offset):
-    factor = index // 3
-    row_num = 3 * factor + offset
-    return [row_num, row_num + 1]
-
-
-def combine_chromosome_genes(hyper_parameters):
-    parameter_lists = [hyper_parameters[:3], hyper_parameters[3:6], hyper_parameters[6:]]
-    return [" / ".join([str(x) for x in parameter_list]) for parameter_list in parameter_lists]
-
-
-def get_inverse_value(val_list):
-    return [str(val) + " / " + str(1 - val) for val in val_list]
+from support_functions import *
 
 
 def place_vertical_lines(root, first_row, columns, length):
@@ -61,84 +29,93 @@ def create_label(root, text, column, row, span=None):
         .grid(column=column, row=row, columnspan=1 if span is None else span)
 
 
-def create_entry(root, string_var, column, row, text=None):
-    if text is not None: create_label(root, text, column - 1, row)
-    entry = Entry(root, textvariable=string_var, font=("Arial", 10), width=10)
+def create_entry(root, label, string, coord, offset=2):
+    column, row = coord
+    create_label(root, label, column - offset, row)
+    entry = Entry(root, textvariable=StringVar(value=string), font=("Arial", 10), width=10)
     entry.grid(column=column, row=row)
     return entry
 
 
-def create_button(root, text, column, row):
+def create_button(root, text, coord):
+    column, row = coord
     button = Button(root, text=text)
     button.grid(column=column, row=row)
     return button
 
 
-def create_checkbutton(root, text, int_var, column, row):
-    checkbutton = Checkbutton(root, text=text, variable=int_var)
+def create_checkbutton(root, label, text, boolean, coord, offset=2):
+    column, row = coord
+    create_label(root, label, column - offset, row)
+    bool_var = IntVar(value=boolean)
+    checkbutton = Checkbutton(root, text=text, variable=bool_var)
     checkbutton.grid(column=column, row=row)
-    return int_var
+    return bool_var
 
 
-def create_option_menu(root, var, options_list, column, row):
-    option_menu = OptionMenu(root, var, *options_list)
+def create_option_menu(root, label, options_list, string, coord, offset=2):
+    column, row = coord
+    create_label(root, label, column - offset, row)
+    string_var = StringVar(value=string)
+    option_menu = OptionMenu(root, string_var, *options_list)
     option_menu.grid(column=column, row=row)
-    return var
+    return string_var
 
 
-def create_spinbox(root, from_, to, increment, num_var, column, row, text=None):
-    if text is not None: create_label(root, text, column - 1, row)
+def create_spinbox(root, label, settings, num, coord, offset=2):
+    column, row = coord
+    create_label(root, label, column - offset, row)
+    from_, to, increment = settings
+    num_var = IntVar(value=num) if isinstance(num, int) else num
     spinbox = Spinbox(root, from_=from_, to=to, increment=increment, textvariable=num_var, width=5)
     spinbox.grid(column=column, row=row)
     return spinbox
 
 
-def create_scale(root, from_, to, int_var, column, row):
-    scale = Scale(root, from_=from_, to=to, variable=int_var, orient=HORIZONTAL, showvalue=False, length=100)
+def create_scale(root, label, settings, num, coord, offset=2):
+    column, row = coord
+    create_label(root, label, column - offset, row)
+    from_, to, show = settings
+    scale = Scale(root, from_=from_, to=to, variable=IntVar(value=num), orient=HORIZONTAL, showvalue=show, length=100)
     scale.grid(column=column, row=row, columnspan=2)
     return scale
 
 
-def single_spinbox_scale(root, from_, to, initial, factor, column, row, text=None):
-    if text is not None: create_label(root, text, column - 1, row)
+def single_spinbox_scale(root, label, settings, initial, coord):
+    from_, to, factor = settings
     double_var = DoubleVar(value=initial / factor)
 
-    scale = create_scale(root, from_, to, IntVar(value=initial), column, row)
+    scale = create_scale(root, "", (from_, to, False), IntVar(value=initial), coord)
     scale.configure(command=lambda val: double_var.set(int(val) if factor == 1 else int(val) / factor))
 
-    spinbox = create_spinbox(root, from_ / factor, to / factor, 1 / factor, double_var, column + 2, row)
+    spinbox = create_spinbox(root, label, (from_ / factor, to / factor, 1 / factor), double_var, shift_coord(coord, 2))
     spinbox.configure(command=lambda: scale.set(double_var.get() * factor))
 
     return spinbox
 
 
-def double_spinbox_scale(root, column, row):
-    def inverse_string(string): return 100 - int(string)
+def double_spinbox_scale(root, label, coord):
 
+    def inverse_string(string): return 100 - int(string)
     def inverse_num(double): return 1 - double
 
     var1 = DoubleVar(value=0.5)
     var2 = DoubleVar(value=0.5)
 
-    spinbox1 = create_spinbox(root, 0, 1, 0.01, var1, column + 1, row)
+    spinbox1 = create_spinbox(root, "", (0, 1, 0.01), var1, shift_coord(coord, 1))
     spinbox1.configure(command=lambda: [scale.set(var1.get() * 100), var2.set(inverse_num(var1.get()))])
 
-    scale = create_scale(root, 0, 100, IntVar(value=50), column + 2, row)
+    scale = create_scale(root, label, (0, 100, False), IntVar(value=50), shift_coord(coord, 2))
     scale.configure(command=lambda val: [var1.set(int(val) / 100), var2.set(inverse_string(val) / 100)])
 
-    spinbox2 = create_spinbox(root, 0, 1, 0.01, var2, column + 4, row)
+    spinbox2 = create_spinbox(root, "", (0, 1, 0.01), var2, shift_coord(coord, 4))
     spinbox2.configure(command=lambda: [scale.set(inverse_num(var2.get()) * 100), var1.set(inverse_num(var2.get()))])
 
     return spinbox1
 
 
-def triple_spinbox_scale(root, first, second, third, column, row):
-    labels = ["Initial", "Final", "Step"]
-    rows = [row - 1, row, row + 1]
-    place_column_labels(root, labels, column, rows)
-
-    spinbox1 = single_spinbox_scale(root, 0, 100, first, 100, column + 1, row - 1)
-    spinbox2 = single_spinbox_scale(root, 0, 100, second, 100, column + 1, row)
-    spinbox3 = single_spinbox_scale(root, 0, 10, third, 1000, column + 1, row + 1)
-
+def triple_spinbox_scale(root, first, second, third, coord):
+    spinbox1 = single_spinbox_scale(root, "Initial", (0, 100, 100), first, shift_coord(coord, 1, -1))
+    spinbox2 = single_spinbox_scale(root, "Final", (0, 100, 100), second, shift_coord(coord, 1))
+    spinbox3 = single_spinbox_scale(root, "Step", (0, 10, 1000), third, shift_coord(coord, 1, 1))
     return [spinbox1, spinbox2, spinbox3]

@@ -1,10 +1,85 @@
 # Import the required Libraries
 from new_gui.widgets import *
-from env_gui import EnvGUI
+from new_gui.frame_widgets import FrameWidgets
+
+
+class EnvGUI:
+    def __init__(self, env_list, default_env):
+        # Create main window
+        self.main = Tk()
+        # Get environment list
+        self.env_list = env_list
+        # Get default env
+        self.default_env = default_env
+
+    def get_initial_frame(self, run_settings):
+        # Create initial subframe
+        initial_frame = FrameWidgets(self.main)
+        # Get environment settings
+        environment_settings = [
+            ("OptionMenu", ("Gym Environment", self.env_list, self.default_env)),
+            ("SpinBox", ("Number of Copies", (1, 10, 1), 1)),
+            ("CheckButton", ("Render Mode", "Human", False)),
+            ("Entry", ("Random Seed", "20313854"))
+        ]
+        # Get training settings
+        training_settings = [
+            ("SpinBox", ("Max Runs", (1, 10, 1), 1)),
+            ("SpinBox", ("Max Episodes", *run_settings["Episodes"])),
+            ("SpinBox", ("Max Turns", *run_settings["Turns"]))
+        ]
+        # Widget lists
+        widget_lists = [
+            ("Environment Settings", environment_settings),
+            ("Training Settings", training_settings)
+        ]
+        # Button labels
+        button_labels = ["Others", "Parameters"]
+        # Return frame, widgets and buttons
+        return initial_frame.create_frame(widget_lists, button_labels)
+
+    def get_parameter_frame(self, parameter_settings, state_settings):
+        # Create parameter subframe
+        parameter_frame = FrameWidgets(self.main)
+        # Get parameter settings
+        parameters = [
+            ("SpinBox", ("Q-Table Number", *parameter_settings["Q-Tables"])),
+            ("SpinBox", ("Action Space", *parameter_settings["Action"])),
+            ("OptionMenu", ("Q-Table Initialization", ["None", "Normal", "Uniform"], "None")),
+            ("CheckButton", ("Opposition Learning", "Include", False)),
+            ("OptionMenu", ("Reward Function", *parameter_settings["Reward"]))
+        ]
+        # Get state space
+        state_space = [("SpinBox", state) for state in state_settings]
+        # Widget lists
+        widget_lists = [
+            ("Parameter Settings", parameters),
+            ("State Space", state_space)
+        ]
+        # Button labels
+        button_labels = ["Tuning", "Back", "Experiment"]
+        # Return frame, widgets and buttons
+        return parameter_frame.create_frame(widget_lists, button_labels)
+
+    def get_other_frame(self, other_settings):
+        # Check if other settings exists
+        if other_settings is None:
+            return None, None, None
+        else:
+            # Create other subframe
+            other_frame = FrameWidgets(self.main)
+            # Widget lists
+            widget_lists = [
+                ("Other Settings", other_settings)
+            ]
+            # Button labels
+            button_labels = ["Back"]
+            # Return frame, widgets and buttons
+            return other_frame.create_frame(widget_lists, button_labels)
 
 
 def get_test_settings(root):
-    test_gui = EnvGUI(root)
+    test_gui = FrameWidgets(root)
     # Widget list
     widget_list_1 = [
         ("OptionMenu", ("Gym Environment", ["CartPole", "Acrobot"], "CartPole")),

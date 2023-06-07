@@ -1,8 +1,31 @@
 import numpy as np
 from numpy import pi, radians, sin, cos, exp, log
-
-from support_functions import angle_reward, future_position, get_average
 from new_gui.code.env_functions import EnvFunctions
+
+
+def get_average(time_steps):
+    # Total number of elements
+    num_elements = len(time_steps) - 1
+    # Calculate average time steps
+    if num_elements <= 100:
+        # Divide current cumulative time steps if < 100
+        return time_steps[-1] / num_elements
+    else:
+        # Divide last 100 cumulative time steps if >= 100
+        return (time_steps[-1] - time_steps[-101]) / 100
+
+
+def future_position(obv):
+    _, _, angle, velocity = obv
+    threshold = pi / 15
+    new_angle = angle + 0.02 * velocity
+    terminated = new_angle < -threshold or new_angle > threshold
+    return new_angle, terminated
+
+
+def angle_reward(obv):
+    angle, _ = future_position(obv)
+    return max(pi / 15 - abs(angle), 0)
 
 
 class CartpoleFunctions(EnvFunctions):

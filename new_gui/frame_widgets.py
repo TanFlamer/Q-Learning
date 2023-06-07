@@ -12,17 +12,7 @@ def widget_grid(widget, coord):
     widget.grid(column=column, row=row)
 
 
-def link_button(button, first_frame, second_frame, open_frame=True):
-    # Link button to command
-    if open_frame:
-        # Keep frame open
-        button.configure(command=lambda: [first_frame.pack_forget(), second_frame.pack(fill='both', expand=1)])
-    else:
-        # Close frame for experiment
-        button.configure(command=lambda: [first_frame.destroy()])
-
-
-class EnvGUI:
+class FrameWidgets:
     def __init__(self, root):
         # Create new frame
         self.win = Frame(root)
@@ -35,17 +25,19 @@ class EnvGUI:
         }
 
     def create_frame(self, widget_lists, button_labels):
+        # Widget values
+        widget_vars = []
         # Row count
         rows = 0
         # Create sections
         for x in range(len(widget_lists)):
             # Unpack section widgets
             label, widget_list = widget_lists[x]
-            # Create sections
-            self.create_section(label, widget_list, rows)
-            # Number of widgets in section
+            # Create section and append widget vars
+            widget_variables = self.create_section(label, widget_list, rows)
+            widget_vars.append(widget_variables)
+            # Add number of widgets to total
             num_widget = len(widget_list)
-            # Add to total
             rows += (num_widget + 1) * 2
         # Add buttons
         button_list = self.add_buttons(button_labels, rows)
@@ -53,7 +45,7 @@ class EnvGUI:
         for x in range(5): self.win.grid_columnconfigure(x, weight=1)
         for y in range(rows + 2): self.win.grid_rowconfigure(y, weight=1)
         # Return frame and button list
-        return self.win, button_list
+        return self.win, widget_vars, button_list
 
     def create_section(self, label, widget_list, row):
         # Number of widgets
@@ -64,13 +56,13 @@ class EnvGUI:
         self.vertical_lines(row + 1, [0, 2, 4], num_widget * 2 + 1)
         self.horizontal_lines(range(row + 1, row + (num_widget + 1) * 2, 2), 5)
         # Place widgets
-        widget_values = []
+        widget_variables = []
         for index in range(num_widget):
             widget_type, widget_settings = widget_list[index]
-            widget_value = self.widgets[widget_type](*widget_settings, (3, row + (index + 1) * 2))
-            widget_values.append(widget_value)
+            widget_variable = self.widgets[widget_type](*widget_settings, (3, row + (index + 1) * 2))
+            widget_variables.append(widget_variable)
         # Return widget list
-        return widget_values
+        return label, widget_variables
 
     def add_buttons(self, labels, row):
         # Get number of buttons
@@ -84,14 +76,14 @@ class EnvGUI:
         elif num_button == 2:
             # Create button to left and right
             first_button = self.create_button(labels[0], (1, row))
-            second_button = self.create_button(labels[0], (3, row))
+            second_button = self.create_button(labels[1], (3, row))
             # Return buttons
             return [first_button, second_button]
         else:
             # Create buttons in middle
             first_button = self.create_button(labels[0], (1, row))
-            second_button = self.create_button(labels[0], (2, row))
-            third_button = self.create_button(labels[0], (3, row))
+            second_button = self.create_button(labels[1], (2, row))
+            third_button = self.create_button(labels[2], (3, row))
             # Return buttons
             return [first_button, second_button, third_button]
 
@@ -109,21 +101,21 @@ class EnvGUI:
         self.create_label(label, shift_coord(coord, -offset))
         entry = Entry(self.win, textvariable=StringVar(value=string), font=("Arial", 10), width=10)
         widget_grid(entry, coord)
-        return entry
+        return label, entry
 
     def create_checkbutton(self, label, text, boolean, coord, offset=2):
         self.create_label(label, shift_coord(coord, -offset))
         bool_var = IntVar(value=boolean)
         checkbutton = Checkbutton(self.win, text=text, variable=bool_var)
         widget_grid(checkbutton, coord)
-        return bool_var
+        return label, bool_var
 
     def create_option_menu(self, label, options_list, string, coord, offset=2):
         self.create_label(label, shift_coord(coord, -offset))
         string_var = StringVar(value=string)
         option_menu = OptionMenu(self.win, string_var, *options_list)
         widget_grid(option_menu, coord)
-        return string_var
+        return label, string_var
 
     def create_spinbox(self, label, settings, num, coord, offset=2):
         self.create_label(label, shift_coord(coord, -offset))
@@ -131,7 +123,7 @@ class EnvGUI:
         num_var = IntVar(value=num) if isinstance(num, int) else num
         spinbox = Spinbox(self.win, from_=from_, to=to, increment=increment, textvariable=num_var, width=5)
         widget_grid(spinbox, coord)
-        return spinbox
+        return label, spinbox
 
     def create_scale(self, from_, to, num, coord):
         column, row = coord
@@ -140,17 +132,19 @@ class EnvGUI:
         scale.grid(column=column, row=row, columnspan=2)
         return scale
 
-    def single_spinbox_scale(self, label, settings, initial, coord):
+    def single_spinbox_scale(self, label, settings, initial, coord, offset=2):
         from_, to, factor = settings
         double_var = DoubleVar(value=initial / factor)
+        self.create_label("Rate", shift_coord(coord, -1))
 
         scale = self.create_scale(from_, to, initial, coord)
         scale.configure(command=lambda val: double_var.set(int(val) if factor == 1 else int(val) / factor))
 
-        spinbox = self.create_spinbox(label, (from_/factor, to/factor, 1/factor), double_var, shift_coord(coord, 2))
+        _, spinbox = self.create_spinbox(label, (from_ / factor, to / factor, 1 / factor),
+                                         double_var, shift_coord(coord, 2), offset)
         spinbox.configure(command=lambda: scale.set(double_var.get() * factor))
 
-        return spinbox
+        return label, spinbox
 
     def double_spinbox_scale(self, label, coord):
 
@@ -162,22 +156,23 @@ class EnvGUI:
         var1 = DoubleVar(value=0.5)
         var2 = DoubleVar(value=0.5)
 
-        spinbox1 = self.create_spinbox("", (0, 1, 0.01), var1, shift_coord(coord, 1))
+        _, spinbox1 = self.create_spinbox("", (0, 1, 0.01), var1, shift_coord(coord, 1))
         spinbox1.configure(command=lambda: [scale.set(var1.get() * 100), var2.set(inverse_num(var1.get()))])
 
         scale = self.create_scale(0, 100, 50, shift_coord(coord, 2))
         scale.configure(command=lambda val: [var1.set(int(val) / 100), var2.set(inverse_string(val) / 100)])
 
-        spinbox2 = self.create_spinbox("", (0, 1, 0.01), var2, shift_coord(coord, 4))
+        _, spinbox2 = self.create_spinbox("", (0, 1, 0.01), var2, shift_coord(coord, 4))
         spinbox2.configure(command=lambda: [scale.set(inverse_num(var2.get()) * 100),var1.set(inverse_num(var2.get()))])
 
-        return spinbox1
+        return label, [spinbox1, spinbox2]
 
-    def triple_spinbox_scale(self, first, second, third, coord):
-        spinbox1 = self.single_spinbox_scale("Initial", (0, 100, 100), first, shift_coord(coord, 1, -1))
-        spinbox2 = self.single_spinbox_scale("Final", (0, 100, 100), second, shift_coord(coord, 1))
-        spinbox3 = self.single_spinbox_scale("Step", (0, 10, 1000), third, shift_coord(coord, 1, 1))
-        return [spinbox1, spinbox2, spinbox3]
+    def triple_spinbox_scale(self, label, first, second, third, coord):
+        self.create_label(label, shift_coord(coord, -2))
+        _, spinbox1 = self.single_spinbox_scale("Initial", (0, 100, 100), first, shift_coord(coord, 1, -1))
+        _, spinbox2 = self.single_spinbox_scale("Final", (0, 100, 100), second, shift_coord(coord, 1))
+        _, spinbox3 = self.single_spinbox_scale("Step", (0, 10, 1000), third, shift_coord(coord, 1, 1))
+        return label, [spinbox1, spinbox2, spinbox3]
 
     def vertical_lines(self, first_row, columns, length):
         for col in columns:
