@@ -32,26 +32,26 @@ def double_crossover(first_parent, second_parent):
 
 
 class GeneticAlgorithm:
-    def __init__(self, tune_settings, fitness_function, other_settings):
+    def __init__(self, tuning_settings, fitness_function, fitness_settings):
         # Unpack tuning settings
         [self.crossover_rate, self.mutation_rate, self.single_double, self.roulette_tournament,
-         self.population_size, self.elite, self.generation_size, self.best] = tune_settings
+         self.population_size, self.elite, self.generation_size, self.best] = tuning_settings
 
         # Get fitness data
         self.fitness_function = fitness_function
-        self.other_settings = other_settings
+        self.fitness_settings = fitness_settings
 
         # Fittest chromosomes
         self.fittest_chromosomes = []
 
-    def run_algorithm(self, runs):
+    def run_algorithm(self):
         # Generate initial population
         population = self.generate_initial_population()
 
         # Run for 100 generations
         for generation in range(self.generation_size):
             # Evaluate population
-            evaluated_population = self.evaluate_population(population, runs)
+            evaluated_population = self.evaluate_population(population)
 
             # Reevaluate fittest chromosome
             self.fittest_chromosomes = self.evaluate_fittest(evaluated_population)
@@ -112,14 +112,12 @@ class GeneticAlgorithm:
         # Return fittest chromosomes
         return improved_list[:self.best]
 
-    def evaluate_population(self, population, runs):
+    def evaluate_population(self, population):
         evaluated_population = []
         # Loop through chromosome in population
         for chromosome in population:
             # Evaluate chromosome fitness
-            results = self.fitness_function(chromosome, self.other_settings, runs, False)[0]
-            # Get average of results
-            fitness = sum(results) / len(results)
+            fitness = self.fitness_function(*self.fitness_settings, chromosome)[0]
             # Append chromosome with fitness
             evaluated_population.append((chromosome, fitness))
         # Sort evaluated population

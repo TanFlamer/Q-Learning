@@ -1,6 +1,23 @@
-from code.commands import run_experiment, run_genetic_algorithm
-from gui.initial_gui import run_gui
-from gui.results_gui import display_tune_results, display_exp_results
+# Env settings
+from settings.acrobot_settings import AcrobotSettings
+from settings.cartpole_settings import CartPoleSettings
+# Env functions
+from functions.acrobot_functions import AcrobotFunctions
+from functions.cartpole_functions import CartpoleFunctions
+# Gym environment
+from gui.gym_env import GymEnv
 
-# Run the GUI
-run_gui(run_experiment, run_genetic_algorithm, display_tune_results, display_exp_results)
+# Gym environment dictionary
+env_dict = {
+    "Acrobot-v1": (AcrobotSettings, AcrobotFunctions),
+    "CartPole-v0": (CartPoleSettings, CartpoleFunctions)
+}
+
+# Default gym environment
+default_env = "CartPole-v0"
+
+if __name__ == '__main__':
+    # Create gym env
+    gym_env = GymEnv(env_dict, default_env)
+    # Load gym frame
+    gym_env.load_gym_frame()
