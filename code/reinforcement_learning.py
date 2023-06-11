@@ -9,7 +9,6 @@ from code.q_learning import QLearning
 def reset_data(qLearning, hyperparameters, time_steps, rewards):
     # Clear time steps
     time_steps.clear()
-    time_steps.append(0)
     # Clear rewards
     rewards.clear()
     # Reset agent
