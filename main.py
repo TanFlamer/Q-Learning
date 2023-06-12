@@ -18,6 +18,6 @@ default_env = "CartPole-v0"
 
 if __name__ == '__main__':
     # Create gym env
-    gym_env = GymEnv(env_dict, default_env)
+    gym_env = GymEnv()
     # Load gym frame
-    gym_env.load_gym_frame()
+    gym_env.load_gui(env_dict, default_env)

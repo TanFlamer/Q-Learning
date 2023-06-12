@@ -16,20 +16,35 @@ def reset_data(qLearning, hyperparameters, time_steps, rewards):
 
 
 class ReinforcementLearning:
-    def __init__(self, train_settings, env_functions):
+    def __init__(self):
 
-        # Unpack training settings
-        [self.runs, self.episodes, self.turns] = train_settings
+        # Training settings
+        self.runs = None
+        self.episodes = None
+        self.turns = None
 
-        # Unpack functions
-        [self.step_function, self.state_to_bucket, self.action_function,
-         self.success_function, self.reward_function] = env_functions
+        # Functions
+        self.step_function = None
+        self.state_to_bucket = None
+        self.action_function = None
+        self.success_function = None
+        self.reward_function = None
 
         # Gym env and agent
         self.env = None
         self.seed = 0
         self.total_runs = 0
+        self.other_settings = None
         self.qLearning_list = []
+
+    def unpack_settings(self, train_settings, env_functions, other_settings):
+        # Unpack training settings
+        [self.runs, self.episodes, self.turns] = train_settings
+        # Unpack functions
+        [self.step_function, self.state_to_bucket, self.action_function,
+         self.success_function, self.reward_function] = env_functions
+        # Unpack other settings
+        self.other_settings = other_settings
 
     def create_env(self, env_id, env_settings):
         # Unpack env settings
@@ -48,10 +63,10 @@ class ReinforcementLearning:
             # Append to Q-Learning list
             self.qLearning_list.append(qLearning)
 
-    def run_experiment(self, hyperparameters, other_settings, runs, exclude_failure):
+    def run_experiment(self, hyperparameters, runs, exclude_failure):
 
         # Reset the environment
-        old_obv_list, _ = self.env.reset(options=other_settings, seed=self.seed)
+        old_obv_list, _ = self.env.reset(options=self.other_settings, seed=self.seed)
 
         # Results lists
         env_copies = self.env.num_envs
@@ -135,9 +150,9 @@ class ReinforcementLearning:
             # Return results and runs
             return results, self.total_runs
 
-    def run_genetic_algorithm(self, tune_setting, other_setting):
+    def run_genetic_algorithm(self, tune_setting):
         # Create genetic algorithm agent
-        genetic_agent = GeneticAlgorithm(tune_setting, self.run_experiment, other_setting)
+        genetic_agent = GeneticAlgorithm(tune_setting, self.run_experiment, self.other_settings)
         # Run genetic algorithm
         return genetic_agent.run_algorithm(self.env.num_envs)
 
