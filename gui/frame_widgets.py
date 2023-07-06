@@ -36,6 +36,7 @@ class FrameWidgets:
     def __init__(self, root):
         # Create new frame
         self.win = Frame(root)
+
         # Assign widgets
         self.widgets = {
             "Entry": self.create_entry,
@@ -49,6 +50,7 @@ class FrameWidgets:
         widget_vars = []
         # Row count
         rows = 0
+
         # Create sections
         for x in range(len(widget_lists)):
             # Unpack section widgets
@@ -59,11 +61,14 @@ class FrameWidgets:
             # Add number of widgets to total
             num_widget = len(widget_list)
             rows += (num_widget + 1) * 2
+
         # Add buttons
         button_list = self.add_buttons(button_labels, rows, True)
+
         # Configure grid rows and columns
         for x in range(5): self.win.grid_columnconfigure(x, weight=1)
         for y in range(rows + 2): self.win.grid_rowconfigure(y, weight=1)
+
         # Return frame and button list
         return self.win, widget_vars, button_list
 
@@ -72,21 +77,25 @@ class FrameWidgets:
         num_widget = len(widget_list)
         # Section label
         self.create_label(label, (2, row))
+
         # Section lines
         self.vertical_lines(row + 1, [0, 2, 4], num_widget * 2 + 1)
         self.horizontal_lines(range(row + 1, row + (num_widget + 1) * 2, 2), 5)
+
         # Place widgets
         widget_variables = []
         for index in range(num_widget):
             widget_type, widget_settings = widget_list[index]
             widget_variable = self.widgets[widget_type](*widget_settings, (3, row + (index + 1) * 2))
             widget_variables.append(widget_variable)
+
         # Return widget list
         return label, widget_variables
 
     def create_results_frame(self, widget_lists, button_labels):
         # Row count
         rows = 0
+
         # Create sections
         for x in range(len(widget_lists)):
             # Unpack section widgets
@@ -96,11 +105,14 @@ class FrameWidgets:
             # Add number of rows to total
             num_rows = math.ceil(len(widget_list) / 3)
             rows += num_rows * 3 + 2
+
         # Add buttons
         button_list = self.add_buttons(button_labels, rows, False)
+
         # Configure grid rows and columns
         for x in range(7): self.win.grid_columnconfigure(x, weight=1)
         for y in range(rows + 2): self.win.grid_rowconfigure(y, weight=1)
+
         # Return frame and button list
         return self.win, button_list
 
@@ -109,9 +121,11 @@ class FrameWidgets:
         num_rows = math.ceil(len(widget_list) / 3)
         # Section label
         self.create_label(label, (3, row))
+
         # Section lines
         self.vertical_lines(row + 1, range(0, 7, 2), num_rows * 3 + 1)
         self.horizontal_lines(range(row + 1, row + (num_rows + 1) * 3, 3), 7)
+
         # Place labels and values
         for index, (widget, value) in enumerate(widget_list):
             # Column and row index

@@ -13,12 +13,13 @@ def link_function(button, frame, function, variables):
     button.configure(command=lambda: [frame.pack_forget(), frame.master.withdraw(), function(*variables)])
 
 
-class EnvGUI:
+class FrameGUI:
     def __init__(self, exp_func, tune_func):
         # Create main window
         self.main = Tk()
         self.main.title("Brick Breaker")
         self.main.geometry("600x450")
+
         # Env functions
         self.exp_func = exp_func
         self.tune_func = tune_func
@@ -38,15 +39,11 @@ class EnvGUI:
         EnvSettings = env_dict[env_id][0]
         settings = EnvSettings().env_settings()
 
-        # Load env frame
+        # Load frames, widgets and buttons
         env_frame, env_widgets, [other_button, gym_button, parameter_button] = self.get_env_frame(settings)
-        # Load parameter frame
         parameter_frame, parameter_widgets, [tune_button, env_button, exp_button] = self.get_parameter_frame(settings)
-        # Load other frame
         other_frame, other_widgets, other_buttons = self.get_other_frame(settings)
-        # Load experiment frame
         exp_frame, exp_widgets, [exp_back_button, exp_start_button] = self.get_experiment_frame(settings)
-        # Load hyperparameter frame
         tune_frame, tune_widgets, [tune_back_button, tune_start_button] = self.get_tune_frame()
 
         # Link button to frames
@@ -78,9 +75,9 @@ class EnvGUI:
     def load_final_frames(self, common_widgets):
         # Unpack widgets list
         [env_widgets, parameter_widgets, other_widgets] = common_widgets
-        # Load settings frame
+
+        # Load frames and buttons
         settings_frame, [other_button, results_button] = self.get_settings_frame(env_widgets + parameter_widgets)
-        # Load other frame
         other_frame, other_buttons = self.get_extra_frame(other_widgets)
 
         # Check if other settings exist
@@ -94,9 +91,8 @@ class EnvGUI:
         return settings_frame, results_button
 
     def load_results_frame(self, common_widgets, exp_widgets, exp_results):
-        # Load settings frame
+        # Load frames and buttons
         settings_frame, results_button = self.load_final_frames(common_widgets)
-        # Load results frame
         results_frame, [back_button, done_button] = self.get_results_frame(exp_widgets, exp_results)
 
         # Link frames to buttons
@@ -109,10 +105,10 @@ class EnvGUI:
         settings_frame.pack(fill='both', expand=1)
 
     def load_hyperparameter_frame(self, common_widgets, tune_widgets, fittest_chromosomes):
-        # Load settings frame
+        # Load frames and buttons
         settings_frame, results_button = self.load_final_frames(common_widgets)
-        # Load hyperparameter frame
-        hyperparameter_frame, [back_button, done_button] = self.get_hyperparameter_frame(tune_widgets, fittest_chromosomes)
+        hyperparameter_frame, [back_button, done_button] = self.get_hyperparameter_frame(tune_widgets,
+                                                                                         fittest_chromosomes)
 
         # Link frames to buttons
         link_frame(results_button, settings_frame, hyperparameter_frame)
@@ -126,18 +122,20 @@ class EnvGUI:
     def get_gym_frame(self, env_dict, default_env):
         # Create gym subframe
         gym_frame = FrameWidgets(self.main)
-        # Get env list
-        env_list = list(env_dict.keys())
+
         # Get gym settings
         gym_settings = [
-            ("OptionMenu", ("Gym Environment", env_list, default_env))
+            ("OptionMenu", ("Gym Environment", list(env_dict.keys()), default_env))
         ]
+
         # Widget lists
         widget_lists = [
             ("Gym Settings", gym_settings)
         ]
+
         # Button labels
         button_labels = ["Next"]
+
         # Return frame, widgets and buttons
         return gym_frame.create_gui_frame(widget_lists, button_labels)
 
@@ -146,25 +144,30 @@ class EnvGUI:
         env_frame = FrameWidgets(self.main)
         # Load run settings
         run_settings = settings["Run"]
+
         # Get environment settings
         environment_settings = [
             ("SpinBox", ("Number of Copies", (1, 10, 1), 1)),
             ("CheckButton", ("Render Mode", "Human", False)),
             ("Entry", ("Random Seed", "20313854"))
         ]
+
         # Get training settings
         training_settings = [
             ("SpinBox", ("Max Runs", (30, 100, 1), 50)),
             ("SpinBox", ("Max Episodes", *run_settings["Episodes"])),
             ("SpinBox", ("Max Turns", *run_settings["Turns"]))
         ]
+
         # Widget lists
         widget_lists = [
             ("Environment Settings", environment_settings),
             ("Training Settings", training_settings)
         ]
+
         # Button labels
         button_labels = ["Others", "Back", "Parameters"]
+
         # Return frame, widgets and buttons
         return env_frame.create_gui_frame(widget_lists, button_labels)
 
@@ -175,6 +178,7 @@ class EnvGUI:
         parameter_settings = settings["Parameter"]
         # Load state spaces
         state_settings = settings["State"]
+
         # Get parameter settings
         parameters = [
             ("SpinBox", ("Q-Table Number", *parameter_settings["Q-Tables"])),
@@ -183,33 +187,42 @@ class EnvGUI:
             ("CheckButton", ("Opposition Learning", "Include", False)),
             ("OptionMenu", ("Reward Function", *parameter_settings["Reward"]))
         ]
+
         # Get state space
         state_space = [("SpinBox", state) for state in state_settings]
+
         # Widget lists
         widget_lists = [
             ("Parameter Settings", parameters),
             ("State Space", state_space)
         ]
+
         # Button labels
         button_labels = ["Tuning", "Back", "Experiment"]
+
         # Return frame, widgets and buttons
         return parameter_frame.create_gui_frame(widget_lists, button_labels)
 
     def get_other_frame(self, settings):
         # Load other settings
         other_settings = settings["Other"]
+
         # Check if other settings exists
         if other_settings is None:
+            # Return None
             return None, None, None
         else:
             # Create other subframe
             other_frame = FrameWidgets(self.main)
+
             # Widget lists
             widget_lists = [
                 ("Other Settings", other_settings)
             ]
+
             # Button labels
             button_labels = ["Back"]
+
             # Return frame, widgets and buttons
             return other_frame.create_gui_frame(widget_lists, button_labels)
 
@@ -254,6 +267,7 @@ class EnvGUI:
     def get_extra_frame(self, other_settings):
         # Check if other settings exists
         if other_settings is None:
+            # Return None
             return None, None
         else:
             # Create other subframe

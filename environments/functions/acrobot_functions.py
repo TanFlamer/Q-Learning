@@ -1,7 +1,7 @@
 import numpy as np
 from numpy import pi, sin, cos, exp
 from gym.envs.classic_control.acrobot import wrap, bound, rk4
-from functions.env_functions import EnvFunctions
+from environments.functions.env_functions import EnvFunctions
 
 
 def get_average(time_steps):
@@ -45,7 +45,7 @@ def _dsdt(s_augmented):
 
 
 class AcrobotFunctions(EnvFunctions):
-    def __init__(self, parameter_settings):
+    def __init__(self, parameter_settings, _):
         # Unpack parameter settings
         super().__init__(parameter_settings)
         # Step function constants
@@ -72,7 +72,7 @@ class AcrobotFunctions(EnvFunctions):
         return np.array([cos(ns[0]), sin(ns[0]), cos(ns[1]), sin(ns[1]), ns[2], ns[3]], dtype=np.float32), terminated
 
     def state_to_bucket(self, obv):
-        bucket_indice = []
+        bucket_indices = []
         for i in range(len(obv)):
             if obv[i] <= self.state_bounds[i][0]:
                 bucket_index = 0
@@ -84,15 +84,24 @@ class AcrobotFunctions(EnvFunctions):
                 offset = (self.num_state[i] - 1) * self.state_bounds[i][0] / bound_width
                 scaling = (self.num_state[i] - 1) / bound_width
                 bucket_index = int(round(scaling * obv[i] - offset))
-            bucket_indice.append(bucket_index)
-        return tuple(bucket_indice)
+            bucket_indices.append(bucket_index)
+        return tuple(bucket_indices)
 
-    def action_function(self, action):
-        if self.num_action == 2: action = action * 2
-        opposite_action = 2 - action if self.opposition and action != 1 else None
-        return action, opposite_action
+    def action_function(self, q_action):
+        # Get actions
+        if self.num_action == 2:
+            opposite_q_action = 1 - q_action
+            action = q_action * 2
+            opposite_action = opposite_q_action * 2 if self.opposition else None
+        else:
+            opposite_q_action = 2 - q_action
+            action = q_action
+            opposite_action = opposite_q_action if self.opposition else None
+        # Return actions
+        return opposite_q_action, action, opposite_action
 
-    def success_function(self, time_steps, _0, _1):
+    def success_function(self, success_variables):
+        time_steps, _, _ = success_variables
         return get_average(time_steps) <= 195.0
 
     def reward_function(self):

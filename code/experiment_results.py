@@ -12,23 +12,6 @@ class Results:
         # Get failed length
         self.failed = total_runs - len(self.results)
 
-    def print_results(self, exp_results):
-        # Get statistics
-        [mean, std, runs, max_val, min_val, median,
-         inter_quartile_range, difference, failed] = exp_results
-
-        # Print statistics
-        print("\nResults =", self.results)
-        print("Mean = %.2f" % mean)
-        print("Standard Deviation = %.2f" % std)
-        print("Runs = %d" % runs)
-        print("Inter-Quartile Range = %.1f" % inter_quartile_range)
-        print("Max = %d" % max_val)
-        print("Min = %d" % min_val)
-        print("Median = %.1f" % median)
-        print("Difference = %.2f" % difference)
-        print("Failed runs = %d" % failed)
-
     def get_statistics(self):
         # Result labels
         exp_labels = ["Mean", "Standard Deviation", "Runs", "Max", "Min", "Median",
@@ -96,3 +79,20 @@ class Results:
         pooled_variance = (first_data + second_data) / (self.first_size + second_size - 2)
         # Get pooled standard deviation of both samples
         return math.sqrt(pooled_variance)
+
+    def print_results(self, exp_results):
+        # Get statistics
+        [mean, std, runs, max_val, min_val, median,
+         inter_quartile_range, difference, failed] = exp_results
+
+        # Print statistics
+        print("\nResults =", self.results)
+        print("Mean = %.2f" % mean)
+        print("Standard Deviation = %.2f" % std)
+        print("Runs = %d" % runs)
+        print("Inter-Quartile Range = %.1f" % inter_quartile_range)
+        print("Max = %d" % max_val)
+        print("Min = %d" % min_val)
+        print("Median = %.1f" % median)
+        print("Difference = %.2f" % difference)
+        print("Failed runs = %d" % failed)

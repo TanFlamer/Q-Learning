@@ -1,6 +1,6 @@
 import numpy as np
 from numpy import pi, radians, sin, cos, exp, log
-from functions.env_functions import EnvFunctions
+from environments.functions.env_functions import EnvFunctions
 
 
 def get_average(time_steps):
@@ -24,7 +24,7 @@ def angle_reward(obv):
 
 
 class CartpoleFunctions(EnvFunctions):
-    def __init__(self, parameter_settings):
+    def __init__(self, parameter_settings, _):
         # Unpack parameter settings
         super().__init__(parameter_settings)
         # Step function constants
@@ -73,7 +73,7 @@ class CartpoleFunctions(EnvFunctions):
         return np.array(obv, dtype=np.float32), terminated
 
     def state_to_bucket(self, obv):
-        bucket_indice = []
+        bucket_indices = []
         for i in range(len(obv)):
             if obv[i] <= self.state_bounds[i][0]:
                 bucket_index = 0
@@ -85,14 +85,19 @@ class CartpoleFunctions(EnvFunctions):
                 offset = (self.num_state[i] - 1) * self.state_bounds[i][0] / bound_width
                 scaling = (self.num_state[i] - 1) / bound_width
                 bucket_index = int(round(scaling * obv[i] - offset))
-            bucket_indice.append(bucket_index)
-        return tuple(bucket_indice)
+            bucket_indices.append(bucket_index)
+        return tuple(bucket_indices)
 
-    def action_function(self, action):
-        opposite_action = 1 - action if self.opposition else None
-        return action, opposite_action
+    def action_function(self, q_action):
+        # Get actions
+        opposite_q_action = 1 - q_action if self.opposition else None
+        action = q_action
+        opposite_action = opposite_q_action
+        # Return actions
+        return opposite_q_action, action, opposite_action
 
-    def success_function(self, time_steps, _0, _1):
+    def success_function(self, success_variables):
+        time_steps, _, _ = success_variables
         return get_average(time_steps) >= 195.0
 
     def reward_function(self):

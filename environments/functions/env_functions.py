@@ -23,11 +23,12 @@ class EnvFunctions(ABC):
         """Change observations into state buckets"""
 
     @abstractmethod
-    def action_function(self, action):
-        """Process and return main and opposite actions"""
+    def action_function(self, q_action):
+        """Process and return opposite q-action, main and opposite actions"""
 
     @abstractmethod
-    def success_function(self, time_steps, rewards, last_obv):
+    def success_function(self, success_variables):
+        # success_variables = (time_steps, rewards, obv)
         """Check for success condition after each episode"""
 
     @abstractmethod

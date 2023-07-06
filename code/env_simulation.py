@@ -2,8 +2,8 @@ import random
 import gym.vector
 import numpy as np
 
-from code.genetic_algorithm import GeneticAlgorithm
-from code.q_learning import QLearning
+from .genetic_algorithm import GeneticAlgorithm
+from .q_learning import QLearning
 
 
 def reset_data(qLearning, hyperparameters, time_steps, rewards):
@@ -15,7 +15,7 @@ def reset_data(qLearning, hyperparameters, time_steps, rewards):
     qLearning.reset_agent(hyperparameters)
 
 
-class ReinforcementLearning:
+class EnvSimulation:
     def __init__(self):
 
         # Training settings
@@ -34,8 +34,8 @@ class ReinforcementLearning:
         self.env = None
         self.seed = 0
         self.total_runs = 0
-        self.other_settings = None
         self.qLearning_list = []
+        self.other_settings = {}
 
     def unpack_settings(self, train_settings, env_functions, other_settings):
         # Unpack training settings
@@ -53,7 +53,10 @@ class ReinforcementLearning:
         random.seed(self.seed)
         np.random.seed(self.seed)
         # Create env
-        self.env = gym.vector.make(env_id, num_envs=env_copies, render_mode="human" if render else None)
+        self.env = gym.vector.make(env_id,
+                                   num_envs=env_copies,
+                                   render_mode="human" if render else None,
+                                   **self.other_settings)
 
     def create_agent(self, parameter_settings):
         # Create copies of Q-Learning agent
@@ -66,14 +69,14 @@ class ReinforcementLearning:
     def run_experiment(self, hyperparameters, runs, exclude_failure):
 
         # Reset the environment
-        old_obv_list, _ = self.env.reset(options=self.other_settings, seed=self.seed)
+        old_obv_list, _ = self.env.reset(seed=self.seed)
 
         # Results lists
         env_copies = self.env.num_envs
-        results = []
         rewards_list = [[] for _ in range(env_copies)]
         time_steps_list = [[] for _ in range(env_copies)]
         reward_total_list = [0 for _ in range(env_copies)]
+        results = []
 
         # Initialise Q-Learning agents
         self.initialise_agents(hyperparameters, old_obv_list)
@@ -82,7 +85,7 @@ class ReinforcementLearning:
         while len(results) < runs and self.total_runs < self.runs:
 
             # Get action lists
-            actions, opposite_actions = self.get_actions()
+            actions, opposite_actions, q_actions, opposite_q_actions = self.get_actions()
 
             # Execute the actions
             obv_list, _, terminations, _, _ = self.env.step(actions)
@@ -90,41 +93,42 @@ class ReinforcementLearning:
             # Loop through Q-Learning agents
             for index, qLearning in enumerate(self.qLearning_list):
 
-                # Get main single instance
+                # Get actions
+                opposite_action = opposite_actions[index]
+                q_action = q_actions[index]
+                opposite_q_action = opposite_q_actions[index]
+
+                # Get obv
                 obv = obv_list[index]
-                action = actions[index]
+                old_obv = old_obv_list[index]
                 terminated = terminations[index]
 
-                # Get other single instance
-                opposite_action = opposite_actions[index]
-                time_steps = time_steps_list[index]
-                rewards = rewards_list[index]
-
                 # Update main action
-                state, reward = self.update_table(qLearning, obv, action, terminated)
+                state, reward = self.update_table(qLearning, obv, q_action, terminated)
                 reward_total_list[index] += reward
 
                 # Opposition learning
                 if opposite_action is not None:
                     # Execute opposite action
-                    opposite_obv, opposite_terminated = self.step_function(old_obv_list[index], opposite_action)
+                    opposite_obv, opposite_terminated = self.step_function(old_obv, opposite_action)
                     # Update opposite action
-                    self.update_table(qLearning, opposite_obv, opposite_action, opposite_terminated)
-
-                # Save old observations
-                old_obv_list = obv_list
-                turns = qLearning.turns
+                    self.update_table(qLearning, opposite_obv, opposite_q_action, opposite_terminated)
 
                 # Termination
-                if terminated or turns >= self.turns:
+                if terminated or qLearning.turns >= self.turns:
+
+                    # Get time steps and rewards
+                    time_steps = time_steps_list[index]
+                    rewards = rewards_list[index]
 
                     # Append time steps and rewards
-                    time_steps.append(turns)
-                    rewards.append((reward_total_list[index], turns))
+                    time_steps.append(qLearning.turns)
+                    rewards.append(reward_total_list[index])
                     reward_total_list[index] = 0
 
                     # Variables
-                    success = self.success_function(time_steps, rewards, obv)
+                    success_variables = (time_steps, rewards, old_obv)
+                    success = self.success_function(success_variables)
                     episodes = qLearning.episodes
 
                     # Success or failure
@@ -145,6 +149,9 @@ class ReinforcementLearning:
                 else:
                     # Load new turn
                     qLearning.save_state(state)
+
+            # Save old observations
+            old_obv_list = obv_list
 
         else:
             # Return results and runs
@@ -173,6 +180,8 @@ class ReinforcementLearning:
         # Action lists
         actions = []
         opposite_actions = []
+        q_actions = []
+        opposite_q_actions = []
 
         # Loop through Q-Learning agents
         for qLearning in self.qLearning_list:
@@ -180,16 +189,18 @@ class ReinforcementLearning:
             # Select Q-tables
             qLearning.select_tables()
             # Select main action
-            action = qLearning.select_action()
-            # Get main and opposite action
-            action, opposite_action = self.action_function(action)
+            q_action = qLearning.select_action()
+            # Get main and opposite action and q-action
+            opposite_q_action, action, opposite_action = self.action_function(q_action)
 
             # Append to action lists
             actions.append(action)
             opposite_actions.append(opposite_action)
+            q_actions.append(q_action)
+            opposite_q_actions.append(opposite_q_action)
 
         # Return action lists
-        return actions, opposite_actions
+        return actions, opposite_actions, q_actions, opposite_q_actions
 
     def update_table(self, qLearning, obv, action, terminated):
         # Get state

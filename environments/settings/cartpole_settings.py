@@ -4,8 +4,8 @@ from .env_settings import EnvSettings
 class CartPoleSettings(EnvSettings):
     def get_run_settings(self):
         run_settings = {
-            "Episodes": ((200, 500, 50), 500),
-            "Turns": ((200, 500, 50), 200)
+            "Episodes": ((200, 500, 50), 200),
+            "Turns": ((200, 500, 50), 500)
         }
         return run_settings
 
