@@ -100,8 +100,7 @@ class AcrobotFunctions(EnvFunctions):
         # Return actions
         return opposite_q_action, action, opposite_action
 
-    def success_function(self, success_variables):
-        time_steps, _, _ = success_variables
+    def success_function(self, time_steps, _0, _1):
         return get_average(time_steps) <= 195.0
 
     def reward_function(self):

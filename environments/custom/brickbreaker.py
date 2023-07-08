@@ -1,3 +1,5 @@
+import random
+
 import gym
 import numpy as np
 import pygame
@@ -22,21 +24,10 @@ class BrickBreakerEnv(gym.Env):
                              game_mode, self.screen_width, self.screen_height)
         self.bricks.generate_bricks()
 
-        # Brick breaker observation
-        low = np.array([0] * 5, dtype=np.float32)
-        high = np.array(
-            [
-                self.screen_width,
-                self.screen_height,
-                self.screen_width,
-                self.screen_height,
-                brick_rows * brick_columns
-            ],
-            dtype=np.float32
-        )
-
         # Spaces
-        self.observation_space = spaces.Box(low, high)
+        self.observation_space = spaces.MultiDiscrete([self.screen_width + 1, self.screen_height + 1,
+                                                       self.screen_width + 1, self.screen_height + 1,
+                                                       3, 3, brick_rows * brick_columns + 1])
         self.action_space = spaces.Discrete(3)
 
         # Set game render mode
@@ -62,8 +53,7 @@ class BrickBreakerEnv(gym.Env):
         if self.render_mode == "human":
             self._render_frame()
 
-        return np.array([*self.paddle.paddle_center(), *self.ball.ball_center(),
-                         len(self.bricks.brick_list)], dtype=np.float32), {}
+        return self._get_obs(), {}
 
     def step(self, action):
         # Move ball and paddle
@@ -83,8 +73,7 @@ class BrickBreakerEnv(gym.Env):
         if self.render_mode == "human":
             self._render_frame()
 
-        return np.array([*self.paddle.paddle_center(), *self.ball.ball_center(),
-                         len(self.bricks.brick_list)], dtype=np.float32), reward, terminated, False, {}
+        return self._get_obs(), reward, terminated, False, {}
 
     def render(self):
         if self.render_mode == "rgb_array":
@@ -121,6 +110,10 @@ class BrickBreakerEnv(gym.Env):
                 np.array(pygame.surfarray.pixels3d(canvas)), axes=(1, 0, 2)
             )
 
+    def _get_obs(self):
+        return np.array((*self.paddle.paddle_center(), *self.ball.ball_center(),
+                         *self.ball.ball_direction(), len(self.bricks.brick_list)))
+
     def close(self):
         if self.window is not None:
             pygame.display.quit()
@@ -146,7 +139,7 @@ class Ball:
 
     def reset_ball(self, x):
         # Get ball direction
-        self.horizontal = np.random.choice([-1, 1])
+        self.horizontal = random.choice([-1, 1])
         self.vertical = 1 if self.game_mode else -1
 
         # Create new ball
@@ -240,6 +233,10 @@ class Ball:
         # Return paddle center
         return self.ball.center
 
+    def ball_direction(self):
+        # Return ball direction
+        return self.horizontal + 1, self.vertical + 1
+
 
 class Paddle:
     def __init__(self, speed, game_mode, screen_width, screen_height):
@@ -327,7 +324,6 @@ class Bricks:
 
             # Brick column loop
             for x in range(self.columns):
-
                 # Get brick coordinates
                 brick_x = x * self.width
                 offset = y * self.height + 50

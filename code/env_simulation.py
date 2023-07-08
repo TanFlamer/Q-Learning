@@ -127,8 +127,7 @@ class EnvSimulation:
                     reward_total_list[index] = 0
 
                     # Variables
-                    success_variables = (time_steps, rewards, old_obv)
-                    success = self.success_function(success_variables)
+                    success = self.success_function(time_steps, rewards, old_obv)
                     episodes = qLearning.episodes
 
                     # Success or failure

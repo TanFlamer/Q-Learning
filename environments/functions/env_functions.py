@@ -27,8 +27,7 @@ class EnvFunctions(ABC):
         """Process and return opposite q-action, main and opposite actions"""
 
     @abstractmethod
-    def success_function(self, success_variables):
-        # success_variables = (time_steps, rewards, obv)
+    def success_function(self, time_steps, rewards, obv):
         """Check for success condition after each episode"""
 
     @abstractmethod

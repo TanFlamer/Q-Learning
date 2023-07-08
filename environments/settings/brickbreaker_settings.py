@@ -21,7 +21,9 @@ class BrickBreakerSettings(EnvSettings):
     def get_state_space(self):
         state_space = [
             ("Horizontal Distance", (2, 20, 2), 2),
-            ("Vertical Distance", (1, 10, 1), 1)
+            ("Vertical Distance", (1, 10, 1), 1),
+            ("Ball Horizontal", (1, 2, 1), 1),
+            ("Ball Vertical", (1, 2, 1), 1)
         ]
         return state_space
 
